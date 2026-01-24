@@ -41,7 +41,7 @@ function App() {
               ENG
             </button>
           </div>
-          <a href="https://github.com/your-repo" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/soohwanlim/dollar_won_chart_analysis" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
       </nav>
 
