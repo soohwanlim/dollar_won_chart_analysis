@@ -134,7 +134,7 @@ const RealPriceChart = ({ ticker }) => {
             // Reset company name on new search to avoid stale check
             // setCompanyName(null); // Optional: keep old name until new one loads?
             try {
-                let url = `/api/v1/chart/${ticker}?period=${period}`;
+                let url = `${API_BASE_URL}/api/v1/chart/${ticker}?period=${period}`;
                 if (period === 'custom' && customStartDate) {
                     url += `&start_date=${customStartDate}`;
                     if (customEndDate) {
