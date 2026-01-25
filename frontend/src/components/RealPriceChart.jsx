@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import axios from 'axios';
 import { useLanguage } from '../contexts/LanguageContext';
+import { API_BASE_URL } from '../config';
 
 const RealPriceChart = ({ ticker }) => {
     const [data, setData] = useState([]);
