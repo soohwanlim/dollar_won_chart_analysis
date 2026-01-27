@@ -148,7 +148,7 @@ def _fetch_kosis_cpi_sync(country: str = "US") -> pd.Series | None:
     
     try:
         with httpx.Client() as client:
-            resp = client.get(url, params=params, timeout=10.0)
+            resp = client.get(url, params=params, timeout=3.0)
             resp.raise_for_status()
             data = resp.json()
             

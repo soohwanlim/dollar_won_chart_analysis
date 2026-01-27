@@ -52,20 +52,37 @@ async def get_chart_data(
 
         # 1. Fetch Data in Parallel
         import asyncio
-        from core.data_loader import fetch_index_data
+        from core.data_loader import fetch_index_data, _get_mock_cpi_data
         
+        # Essential tasks (Stock and Exchange Rate)
         stock_task = fetch_stock_data(ticker, period, start_date, end_date)
         exchange_task = fetch_exchange_rate(period, start_date, end_date)
+        
+        # Concurrent execution for essentials
+        stock_df, exchange_df = await asyncio.gather(stock_task, exchange_task)
+        
+        if stock_df.empty:
+            raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
+            
+        # Optional tasks (with aggressive timeouts to prevent total failure)
+        # CPI, Gold, and Benchmark are nice to have but shouldn't block the main chart.
         cpi_task = fetch_cpi_data()
         gold_task = fetch_gold_data(period, start_date, end_date)
         benchmark_task = fetch_index_data(benchmark_symbol, period, start_date, end_date)
         
-        stock_df, exchange_df, cpi_series, gold_df, benchmark_df = await asyncio.gather(
-            stock_task, exchange_task, cpi_task, gold_task, benchmark_task
+        # Helper to run optional task with timeout
+        async def run_optional(task, fallback_val, name):
+            try:
+                return await asyncio.wait_for(task, timeout=3.0)
+            except Exception as e:
+                print(f"Warning: Optional task '{name}' failed or timed out: {e}")
+                return fallback_val
+
+        cpi_series, gold_df, benchmark_df = await asyncio.gather(
+            run_optional(cpi_task, _get_mock_cpi_data(), "CPI"),
+            run_optional(gold_task, pd.DataFrame(), "GOLD"),
+            run_optional(benchmark_task, pd.DataFrame(), "BENCHMARK")
         )
-        
-        if stock_df.empty:
-            raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
             
         # 2. Calculate
         result_df = calculate_real_price(stock_df, exchange_df, cpi_series, gold_df, benchmark_df)
