@@ -1,95 +1,66 @@
 
-import React, { useState } from 'react';
-import RealPriceChart from './components/RealPriceChart';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
 import './App.css';
-
 import { useLanguage } from './contexts/LanguageContext';
 
+// Pages
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+
 function App() {
-  const [ticker, setTicker] = useState('005930'); // Default to Samsung Electronics
-  const [searchInput, setSearchInput] = useState('005930');
-  const { t, language, setLanguage } = useLanguage();
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setTicker(searchInput);
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(prev => prev === 'en' ? 'ko' : 'en');
-  };
+  const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="app-container">
-      <nav className="navbar">
-        <div className="logo">
-          <span className="logo-icon">📈</span>
-          <span className="logo-text">RealK <span className="logo-sub">Market View</span></span>
-        </div>
-        <div className="links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div className="button-group">
-            <button
-              className={`group-btn ${language === 'ko' ? 'active' : ''}`}
-              onClick={() => setLanguage('ko')}
-            >
-              KOR
-            </button>
-            <button
-              className={`group-btn ${language === 'en' ? 'active' : ''}`}
-              onClick={() => setLanguage('en')}
-            >
-              ENG
-            </button>
+    <Router>
+      <div className="app-container">
+        <nav className="navbar">
+          <Link to="/" className="logo" style={{ textDecoration: 'none' }}>
+            <span className="logo-icon">📈</span>
+            <span className="logo-text">RealK <span className="logo-sub">Market View</span></span>
+          </Link>
+
+          <div className="links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {/* Navigation Menus */}
+            <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} style={{ color: '#e5e7eb', textDecoration: 'none' }}>Home</NavLink>
+            <NavLink to="/about" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'} style={{ color: '#e5e7eb', textDecoration: 'none' }}>About</NavLink>
+
+            <div className="button-group">
+              <button
+                className={`group-btn ${language === 'ko' ? 'active' : ''}`}
+                onClick={() => setLanguage('ko')}
+              >
+                KOR
+              </button>
+              <button
+                className={`group-btn ${language === 'en' ? 'active' : ''}`}
+                onClick={() => setLanguage('en')}
+              >
+                ENG
+              </button>
+            </div>
+            <a href="https://github.com/soohwanlim/dollar_won_chart_analysis" target="_blank" rel="noopener noreferrer" style={{ color: '#9ca3af' }}>GitHub</a>
           </div>
-          <a href="https://github.com/soohwanlim/dollar_won_chart_analysis" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </div>
-      </nav>
+        </nav>
 
-      <main className="main-content">
-        <div className="hero-section">
-          <h1>{t('hero.title')} <span className="highlight">{t('hero.highlight')}</span></h1>
-          <p className="subtitle">
-            {t('hero.subtitle')}
-          </p>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        </Routes>
 
-          <form onSubmit={handleSearch} className="search-box">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t('hero.searchPlaceholder')}
-            />
-            <button type="submit">{t('hero.searchButton')}</button>
-          </form>
-        </div>
-
-        <section className="chart-section">
-          <RealPriceChart ticker={ticker} />
-        </section>
-
-        <section className="info-section">
-          <div className="info-card">
-            <h3>{t('cards.dollarTitle')}</h3>
-            <p>{t('cards.dollarDesc')}</p>
+        <footer className="footer" style={{ textAlign: 'left', padding: '2rem', color: '#6b7280', fontSize: '0.85rem', lineHeight: '1.35', borderTop: '1px solid #1f2937' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+            <Link to="/about" style={{ color: '#9ca3af', textDecoration: 'none' }}>서비스 소개</Link>
+            <Link to="/privacy" style={{ color: '#9ca3af', textDecoration: 'none' }}>개인정보처리방침</Link>
           </div>
-          <div className="info-card">
-            <h3>{t('cards.inflationTitle')}</h3>
-            <p>{t('cards.inflationDesc')}</p>
-          </div>
-          <div className="info-card">
-            <h3>{t('cards.illusionTitle')}</h3>
-            <p>{t('cards.illusionDesc')}</p>
-          </div>
-        </section>
-      </main>
-
-      <footer className="footer" style={{ textAlign: 'left', padding: '2rem', color: '#6b7280', fontSize: '0.85rem', lineHeight: '1.35' }}>
-        <p>© 2026 RealK Project</p>
-        <p>made by nobonobo</p>
-        <p>Data Based on yfinance, FinanceDataReader, FRED</p>
-
-      </footer>
-    </div>
+          <p>© 2026 RealK Project</p>
+          <p>made by nobonobo</p>
+          <p>Data Based on yfinance, FinanceDataReader, FRED</p>
+        </footer>
+      </div>
+    </Router>
   );
 }
 
