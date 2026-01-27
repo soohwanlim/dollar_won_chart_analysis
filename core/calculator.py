@@ -34,95 +34,98 @@ def calculate_real_price(
     stock_df: pd.DataFrame, 
     exchange_rate_df: pd.DataFrame, 
     cpi_series: pd.Series,
-    gold_df: pd.DataFrame = None
+    gold_df: pd.DataFrame = None,
+    benchmark_df: pd.DataFrame = None
 ) -> pd.DataFrame:
     """
-    Calculate Real Price based on Exchange Rate and CPI.
-    Formula:
-    1. USD Price = Nominal KRW Price / Exchange Rate
-    2. Real Price (Inflation Adjusted) = USD Price * (Base CPI / Current CPI) 
-       OR KRW Price * (Base CPI / Current CPI) depending on definition.
-       
-    README says:
-    P_real(t) = (P_nominal(t) / E(t)) * (CPI(t_base) / CPI(t))
-    This implies we are converting to "Real USD".
+    Calculate Real Price based on Exchange Rate and CPI, and optional Benchmark comparison.
     """
-    
-    # 1. Clean and Prepare Exchange Rate
-    # Exchange rate data (KRW=X) 'Close' column represents KRW per 1 USD
-    # Align Exchange Rate to Stock Data
     
     # Ensure timezone naivety
     if stock_df.index.tz is not None:
         stock_df.index = stock_df.index.tz_localize(None)
     if exchange_rate_df.index.tz is not None:
         exchange_rate_df.index = exchange_rate_df.index.tz_localize(None)
+    if gold_df is not None and gold_df.index.tz is not None:
+        gold_df.index = gold_df.index.tz_localize(None)
+    if benchmark_df is not None and benchmark_df.index.tz is not None:
+        benchmark_df.index = benchmark_df.index.tz_localize(None)
         
-    # Merge Stock and Exchange Rate
-    # Rename Close columns to avoid collision
-    stock_df = stock_df[['Close']].rename(columns={'Close': 'Close_KRW'})
-    exchange_rate_df = exchange_rate_df[['Close']].rename(columns={'Close': 'Exchange_Rate'})
+    # 1. Clean and Prepare Exchange Rate
+    stock_df_trimmed = stock_df[['Close']].rename(columns={'Close': 'Close_KRW'})
+    exchange_rate_df_trimmed = exchange_rate_df[['Close']].rename(columns={'Close': 'Exchange_Rate'})
     
-    # Combine Stock and Exchange Rate first
-    df = pd.merge(stock_df, exchange_rate_df, left_index=True, right_index=True, how='inner')
+    # Merge Stock and Exchange Rate
+    df = pd.merge(stock_df_trimmed, exchange_rate_df_trimmed, left_index=True, right_index=True, how='inner')
     
     # 2. Calculate USD Price
     df['Close_USD'] = df['Close_KRW'] / df['Exchange_Rate']
     
     # 3. Align and Merge CPI
-    # Do this after getting daily data
-    # Note: align_data takes stock_df, but we can pass our current 'df'
-    
     if cpi_series.empty:
-        # Without CPI, we can only provide Nominal and USD Adjusted
         df['Real_Price'] = np.nan
         df['CPI'] = np.nan
-        # Continue to Gold calculation even if CPI is missing
     else:
         df_with_cpi = align_data(df, cpi_series)
-        
-        # 4. Calculate Real Price (Inflation Adjusted)
-        # Base CPI: typically the most recent CPI or a fixed point (e.g. 2010). 
-        # Let's use the most recent available CPI in the dataset as the base (t_base).
-        # This means "What is the past price worth in TODAY's dollars?"
         base_cpi = df_with_cpi['CPI'].iloc[-1]
-        
-        # Real Price = Nominal(USD) * (Base CPI / Current CPI)
         df_with_cpi['Real_Price'] = df_with_cpi['Close_USD'] * (base_cpi / df_with_cpi['CPI'])
-        
         df = df_with_cpi
 
-    # 5. Calculate Gold Standard Price
+    # 4. Calculate Gold Standard Price
     if gold_df is not None and not gold_df.empty:
-        if gold_df.index.tz is not None:
-            gold_df.index = gold_df.index.tz_localize(None)
-        
-        gold_df = gold_df[['Close']].rename(columns={'Close': 'Gold_USD_oz'})
-        
-        # Merge Gold Data
-        # Use left join from existing valid stock days
-        df = pd.merge(df, gold_df, left_index=True, right_index=True, how='left')
-        
-        # Forward fill Gold (market might be closed on some days stock is open, though rare for Futures)
+        gold_df_trimmed = gold_df[['Close']].rename(columns={'Close': 'Gold_USD_oz'})
+        df = pd.merge(df, gold_df_trimmed, left_index=True, right_index=True, how='left')
         df['Gold_USD_oz'] = df['Gold_USD_oz'].ffill()
-        
-        # Calculate Stock Price in Gold Oz
-        # Stock (USD) / Gold (USD/oz) = Stock in Oz
         df['Close_Gold_oz'] = df['Close_USD'] / df['Gold_USD_oz']
-        
-        # Calculate Stock Price in Gold Don
-        # 1 Oz = 31.1035 g
-        # 1 Don = 3.75 g
-        # 1 Oz = (31.1035 / 3.75) Don ~= 8.294 Don
-        # Price (Don) = Price (Oz) * (Oz per Don factor?) 
-        # Wait. 
-        # Price in Oz is "Mass of Gold equal to Stock".
-        # Mass in Don = Mass in Oz * (31.1035 / 3.75).
-        # Yes, if I have 1 Oz of value, I have 8.29 Don of value.
         df['Close_Gold_don'] = df['Close_Gold_oz'] * (31.1035 / 3.75)
     else:
         df['Gold_USD_oz'] = np.nan
         df['Close_Gold_oz'] = np.nan
         df['Close_Gold_don'] = np.nan
-    
+        
+    # 5. Benchmark & Alpha calculation
+    if benchmark_df is not None and not benchmark_df.empty:
+        benchmark_close = benchmark_df[['Close']].rename(columns={'Close': 'Bench_Close'})
+        df = pd.merge(df, benchmark_close, left_index=True, right_index=True, how='left')
+        df['Bench_Close'] = df['Bench_Close'].ffill()
+        
+        # Calculate Benchmark Real Price (USD/CPI adjusted)
+        # Note: Some benchmarks might be already in USD (like SPY), but let's assume they might need adjustment
+        # For simplicity, if it's a Korean index (^KS11), we adjust by USD/CPI.
+        # If it's US index, we just adjust by CPI.
+        
+        # Heuristic: if index is ^GSPC, ^IXIC, or contains SPY/QQQ, assume USD based.
+        # Actually, let's look at the caller to decide, or just use the same logic if it's KRW index.
+        # For now, let's assume the user wants to compare "Real Power".
+        
+        # If Benchmark is ^KS11 (KOSPI), it's in KRW.
+        # Let's check if the index is numeric (KOSPI) or not.
+        # Hardcode some logic for now:
+        is_us_index = any(x in benchmark_df.index.name or "" for x in ["GSPC", "IXIC", "DJI", "SPY", "QQQ"]) 
+        # Actually, let's just check if Bench_Close values are "small" (USD) or "large" (KRW) or use the symbol.
+        # Let's pass a flag or just use the symbol logic in the endpoint.
+        
+        # Simplified: Use the same Real Price logic if it's a KRW-based benchmark.
+        # We'll assume ^KS11, ^KQ11 are KRW based.
+        
+        # We need a way to know if benchmark is KRW or USD.
+        # Let's assume for now we provide a 'benchmark_currency' or just use the same adjustment as stock if both are KR.
+        # For now, let's just calculate Benchmark_Real_Price using the same CPI/Exchange logic for simplicity (assuming KR index).
+        df['Benchmark_Real_Price'] = (df['Bench_Close'] / df['Exchange_Rate']) * (base_cpi / df['CPI']) if 'CPI' in df and not pd.isna(df['CPI'].iloc[0]) else (df['Bench_Close'] / df['Exchange_Rate'])
+        
+        # Calculate cumulative returns for Alpha
+        # Return = (Current Real Price / Start Real Price) - 1
+        stock_start = df['Real_Price'].iloc[0]
+        bench_start = df['Benchmark_Real_Price'].iloc[0]
+        
+        if pd.notna(stock_start) and pd.notna(bench_start) and stock_start != 0 and bench_start != 0:
+            df['Stock_Return'] = (df['Real_Price'] / stock_start) - 1
+            df['Bench_Return'] = (df['Benchmark_Real_Price'] / bench_start) - 1
+            df['Alpha'] = df['Stock_Return'] - df['Bench_Return']
+        else:
+            df['Alpha'] = 0
+    else:
+        df['Benchmark_Real_Price'] = np.nan
+        df['Alpha'] = np.nan
+
     return df

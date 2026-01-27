@@ -211,6 +211,11 @@ async def fetch_gold_data(period: str, start_date: str = None, end_date: str = N
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, partial(_fetch_gold_sync, period, start_date, end_date))
 
+async def fetch_index_data(symbol: str, period: str, start_date: str = None, end_date: str = None) -> pd.DataFrame:
+    """Fetch Index data (e.g. ^KS11, ^IXIC)."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(_fetch_stock_sync, symbol, period, start_date, end_date))
+
 async def fetch_cpi_data(country: str = "US") -> pd.Series:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, partial(_fetch_fred_cpi_sync if country == "US" else _fetch_kosis_cpi_sync, country))

@@ -32,6 +32,9 @@ const RealPriceChart = ({ ticker }) => {
     const [investmentPrice, setInvestmentPrice] = useState('');
     const [showDisparity, setShowDisparity] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, date: null, price: null });
+    const [isGhostMode, setIsGhostMode] = useState(false); // Ghost Mode (Index Comparison)
+    const [benchmark, setBenchmark] = useState('^KS11'); // KOSPI default
+    const [overallAlpha, setOverallAlpha] = useState(0);
     const { t, language } = useLanguage();
 
     // Helper to normalise data to base 100
@@ -66,6 +69,7 @@ const RealPriceChart = ({ ticker }) => {
         const baseClose = base.close || 1;
         const baseUsd = base.real_price_usd || 1;
         const baseCpi = base.real_price_cpi || 1;
+        const baseBench = base.benchmark_real_price || 1;
 
         return rawData.map(item => {
             const idxClose = (item.close / baseClose) * 100;
@@ -75,6 +79,7 @@ const RealPriceChart = ({ ticker }) => {
                 close: idxClose,
                 real_price_usd: idxUsd,
                 real_price_cpi: (item.real_price_cpi / baseCpi) * 100,
+                benchmark_real_price: item.benchmark_real_price ? (item.benchmark_real_price / baseBench) * 100 : null,
                 // Disparity: (Nominal Index - Real Index)
                 // Positive = Money Illusion (Bubble)
                 // Negative = Real Gain > Nominal Gain (or less loss)
@@ -134,7 +139,7 @@ const RealPriceChart = ({ ticker }) => {
             // Reset company name on new search to avoid stale check
             // setCompanyName(null); // Optional: keep old name until new one loads?
             try {
-                let url = `${API_BASE_URL}/api/v1/chart/${ticker}?period=${period}`;
+                let url = `${API_BASE_URL}/api/v1/chart/${ticker}?period=${period}&benchmark=${benchmark}`;
                 if (period === 'custom' && customStartDate) {
                     url += `&start_date=${customStartDate}`;
                     if (customEndDate) {
@@ -147,6 +152,9 @@ const RealPriceChart = ({ ticker }) => {
                     setCompanyName(response.data.company_name);
                 } else {
                     setCompanyName(null);
+                }
+                if (response.data.overall_alpha !== undefined) {
+                    setOverallAlpha(response.data.overall_alpha);
                 }
 
             } catch (err) {
@@ -166,7 +174,7 @@ const RealPriceChart = ({ ticker }) => {
             if (period === 'custom' && !customStartDate) return;
             fetchData();
         }
-    }, [ticker, period, (period === 'custom' ? customStartDate + customEndDate : null), t]);
+    }, [ticker, period, (period === 'custom' ? customStartDate + customEndDate : null), benchmark, t]);
     // Dependency includes dates only if in custom mode to trigger refetch on "Go" effectively if I set period to custom
 
     if (loading && period !== 'custom') return <div className="loading-container">{t('chart.loading')}</div>; // Keep UI responsive for custom updates
@@ -187,6 +195,13 @@ const RealPriceChart = ({ ticker }) => {
     const displayTitle = companyName
         ? `${companyName} (${ticker.replace('.KS', '')})`
         : ticker.replace('.KS', '');
+
+    const benchmarkOptions = [
+        { label: 'KOSPI', value: '^KS11' },
+        { label: 'KOSDAQ', value: '^KQ11' },
+        { label: 'S&P 500', value: '^GSPC' },
+        { label: 'Nasdaq', value: '^IXIC' }
+    ];
 
     return (
         <div className="chart-container">
@@ -217,6 +232,14 @@ const RealPriceChart = ({ ticker }) => {
                             >
                                 💰 {t('chart.gold')}
                             </button>
+                            <button
+                                className={`group-btn ${isGhostMode ? 'active' : ''}`}
+                                onClick={() => {
+                                    setIsGhostMode(!isGhostMode);
+                                }}
+                            >
+                                👻 Ghost Mode
+                            </button>
                             {isIndexed && (
                                 <button
                                     className={`group-btn ${showDisparity ? 'active' : ''}`}
@@ -244,6 +267,31 @@ const RealPriceChart = ({ ticker }) => {
                             </button>
                         ))}
                     </div>
+
+                    {isGhostMode && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px 12px', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Benchmark:</span>
+                            <select
+                                value={benchmark}
+                                onChange={(e) => setBenchmark(e.target.value)}
+                                style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', outline: 'none' }}
+                            >
+                                {benchmarkOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value} style={{ background: '#1f2937' }}>{opt.label}</option>
+                                ))}
+                            </select>
+                            <div style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: overallAlpha >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                color: overallAlpha >= 0 ? '#10b981' : '#ef4444',
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold'
+                            }}>
+                                Alpha: {(overallAlpha * 100).toFixed(2)}%
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Simulation Control */}
@@ -615,17 +663,19 @@ const RealPriceChart = ({ ticker }) => {
                                     animationDuration={1000}
                                 />
                             )}
-                            {/* <Line
-                                yAxisId={isIndexed ? "left" : "right"}
-                                type="monotone"
-                                dataKey="real_price_cpi"
-                                name={t('chart.legendReal')}
-                                stroke="#ffc658"
-                                strokeWidth={2}
-                                dot={false}
-                                strokeDasharray="5 5"
-                                animationDuration={1000}
-                            /> */}
+                            {isGhostMode && (
+                                <Line
+                                    yAxisId={isIndexed ? "left" : "right"}
+                                    type="monotone"
+                                    dataKey="benchmark_real_price"
+                                    name={`Real ${benchmarkOptions.find(o => o.value === benchmark)?.label || benchmark}`}
+                                    stroke="rgba(255, 255, 255, 0.4)"
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    dot={false}
+                                    animationDuration={1000}
+                                />
+                            )}
                         </LineChart>
                     </ResponsiveContainer>
                 )}
