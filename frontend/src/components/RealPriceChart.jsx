@@ -232,14 +232,6 @@ const RealPriceChart = ({ ticker }) => {
                             >
                                 💰 {t('chart.gold')}
                             </button>
-                            <button
-                                className={`group-btn ${isGhostMode ? 'active' : ''}`}
-                                onClick={() => {
-                                    setIsGhostMode(!isGhostMode);
-                                }}
-                            >
-                                👻 Ghost Mode
-                            </button>
                             {isIndexed && (
                                 <button
                                     className={`group-btn ${showDisparity ? 'active' : ''}`}
@@ -268,28 +260,49 @@ const RealPriceChart = ({ ticker }) => {
                         ))}
                     </div>
 
-                    {isGhostMode && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px 12px', borderRadius: '8px' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Benchmark:</span>
-                            <select
-                                value={benchmark}
-                                onChange={(e) => setBenchmark(e.target.value)}
-                                style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', outline: 'none' }}
+                    {isIndexed && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                className={`group-btn ${isGhostMode ? 'active' : ''}`}
+                                onClick={() => setIsGhostMode(!isGhostMode)}
+                                style={{
+                                    padding: '4px 12px',
+                                    fontSize: '0.85rem',
+                                    background: isGhostMode ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                    color: 'white',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer'
+                                }}
+                                title={language === 'ko' ? '시장과 비교' : 'Compare with Market'}
                             >
-                                {benchmarkOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value} style={{ background: '#1f2937' }}>{opt.label}</option>
-                                ))}
-                            </select>
-                            <div style={{
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: overallAlpha >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                                color: overallAlpha >= 0 ? '#10b981' : '#ef4444',
-                                fontSize: '0.85rem',
-                                fontWeight: 'bold'
-                            }}>
-                                Alpha: {(overallAlpha * 100).toFixed(2)}%
-                            </div>
+                                {language === 'ko' ? 'VS 시장' : 'VS Market'}
+                            </button>
+
+                            {isGhostMode && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px 12px', borderRadius: '8px' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Benchmark:</span>
+                                    <select
+                                        value={benchmark}
+                                        onChange={(e) => setBenchmark(e.target.value)}
+                                        style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', outline: 'none' }}
+                                    >
+                                        {benchmarkOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value} style={{ background: '#1f2937' }}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    <div style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        background: overallAlpha >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                        color: overallAlpha >= 0 ? '#10b981' : '#ef4444',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        Alpha: {(overallAlpha * 100).toFixed(2)}%
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -681,125 +694,129 @@ const RealPriceChart = ({ ticker }) => {
                 )}
             </div>
             {/* Disparity Oscillator Chart */}
-            {isIndexed && showDisparity && !loading && displayData.length > 0 && (
-                <div className="chart-wrapper" style={{ height: 200, marginTop: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
-                        <h4 style={{ color: '#9ca3af', margin: 0 }}>
-                            {t('chart.disparity_title')}
-                        </h4>
-                        <div className="tooltip-container" style={{ position: 'relative', display: 'inline-block', cursor: 'help' }}>
-                            <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>ⓘ</span>
-                            <div className="tooltip-text" style={{
-                                visibility: 'hidden',
-                                width: '280px',
-                                backgroundColor: 'rgba(0,0,0,0.9)',
-                                color: '#d1d5db',
-                                textAlign: 'left',
-                                borderRadius: '6px',
-                                padding: '10px',
-                                position: 'absolute',
-                                zIndex: 1,
-                                bottom: '125%',
-                                left: '50%',
-                                marginLeft: '-140px',
-                                fontSize: '0.8rem',
-                                border: '1px solid #374151',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                pointerEvents: 'none'
-                            }}>
-                                {t('chart.disparity_desc')}
-                            </div>
-                            <style jsx>{`
+            {
+                isIndexed && showDisparity && !loading && displayData.length > 0 && (
+                    <div className="chart-wrapper" style={{ height: 200, marginTop: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+                            <h4 style={{ color: '#9ca3af', margin: 0 }}>
+                                {t('chart.disparity_title')}
+                            </h4>
+                            <div className="tooltip-container" style={{ position: 'relative', display: 'inline-block', cursor: 'help' }}>
+                                <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>ⓘ</span>
+                                <div className="tooltip-text" style={{
+                                    visibility: 'hidden',
+                                    width: '280px',
+                                    backgroundColor: 'rgba(0,0,0,0.9)',
+                                    color: '#d1d5db',
+                                    textAlign: 'left',
+                                    borderRadius: '6px',
+                                    padding: '10px',
+                                    position: 'absolute',
+                                    zIndex: 1,
+                                    bottom: '125%',
+                                    left: '50%',
+                                    marginLeft: '-140px',
+                                    fontSize: '0.8rem',
+                                    border: '1px solid #374151',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                    pointerEvents: 'none'
+                                }}>
+                                    {t('chart.disparity_desc')}
+                                </div>
+                                <style jsx>{`
                                 .tooltip-container:hover .tooltip-text {
                                     visibility: visible !important;
                                     opacity: 1;
                                 }
                             `}</style>
+                            </div>
                         </div>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={displayData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                <XAxis dataKey="date" hide />
+                                <YAxis
+                                    tick={{ fill: '#888', fontSize: 10 }}
+                                    label={{ value: t('chart.disparity_label'), angle: -90, position: 'insideLeft', fill: '#888' }}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'transparent' }}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            const val = payload[0].value;
+                                            return (
+                                                <div style={{ backgroundColor: '#1f2937', padding: '10px', borderRadius: '8px', border: '1px solid #374151' }}>
+                                                    <p style={{ color: '#9ca3af' }}>{label}</p>
+                                                    <p style={{ color: val > 0 ? '#ef4444' : '#10b981' }}>
+                                                        {t('chart.disparity')}: {val.toFixed(2)}%p
+                                                    </p>
+                                                    <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                                                        {val > 0 ? t('chart.disparity_pos') : t('chart.disparity_neg')}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Legend />
+                                <ReferenceLine y={0} stroke="#666" />
+                                <Area
+                                    type="monotone"
+                                    dataKey="disparity"
+                                    stroke="#888"
+                                    fill="url(#splitColor)"
+                                    name={t('chart.disparity')}
+                                />
+                                <defs>
+                                    <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset={off} stopColor="#ef4444" stopOpacity={0.6} />
+                                        <stop offset={off} stopColor="#10b981" stopOpacity={0.6} />
+                                    </linearGradient>
+                                </defs>
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={displayData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                            <XAxis dataKey="date" hide />
-                            <YAxis
-                                tick={{ fill: '#888', fontSize: 10 }}
-                                label={{ value: t('chart.disparity_label'), angle: -90, position: 'insideLeft', fill: '#888' }}
-                            />
-                            <Tooltip
-                                cursor={{ fill: 'transparent' }}
-                                content={({ active, payload, label }) => {
-                                    if (active && payload && payload.length) {
-                                        const val = payload[0].value;
-                                        return (
-                                            <div style={{ backgroundColor: '#1f2937', padding: '10px', borderRadius: '8px', border: '1px solid #374151' }}>
-                                                <p style={{ color: '#9ca3af' }}>{label}</p>
-                                                <p style={{ color: val > 0 ? '#ef4444' : '#10b981' }}>
-                                                    {t('chart.disparity')}: {val.toFixed(2)}%p
-                                                </p>
-                                                <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                                                    {val > 0 ? t('chart.disparity_pos') : t('chart.disparity_neg')}
-                                                </p>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }}
-                            />
-                            <Legend />
-                            <ReferenceLine y={0} stroke="#666" />
-                            <Area
-                                type="monotone"
-                                dataKey="disparity"
-                                stroke="#888"
-                                fill="url(#splitColor)"
-                                name={t('chart.disparity')}
-                            />
-                            <defs>
-                                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset={off} stopColor="#ef4444" stopOpacity={0.6} />
-                                    <stop offset={off} stopColor="#10b981" stopOpacity={0.6} />
-                                </linearGradient>
-                            </defs>
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            )}
+                )
+            }
             {/* Custom Modal */}
-            {confirmModal.isOpen && (
-                <div className="modal-overlay" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h3>{t('chart.modal.title')}</h3>
-                        <p>
-                            {t('chart.modal.desc')} <strong>{confirmModal.date}</strong><br />
-                            (Price: {new Intl.NumberFormat('en-US').format(confirmModal.price)} KRW)
-                        </p>
-                        <div className="modal-buttons">
-                            <button
-                                className="modal-btn cancel"
-                                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                            >
-                                {t('chart.modal.cancel')}
-                            </button>
-                            <button
-                                className="modal-btn confirm"
-                                onClick={() => {
-                                    const { date, price } = confirmModal;
-                                    setInvestmentDate(date);
-                                    setInvestmentPrice(price);
-                                    const today = new Date().toISOString().split('T')[0];
-                                    setCustomStartDate(date);
-                                    setCustomEndDate(today);
-                                    setPeriod('custom');
-                                    setIsIndexed(true);
-                                    setConfirmModal({ ...confirmModal, isOpen: false });
-                                }}
-                            >
-                                {t('chart.modal.confirm')}
-                            </button>
+            {
+                confirmModal.isOpen && (
+                    <div className="modal-overlay" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <h3>{t('chart.modal.title')}</h3>
+                            <p>
+                                {t('chart.modal.desc')} <strong>{confirmModal.date}</strong><br />
+                                (Price: {new Intl.NumberFormat('en-US').format(confirmModal.price)} KRW)
+                            </p>
+                            <div className="modal-buttons">
+                                <button
+                                    className="modal-btn cancel"
+                                    onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                                >
+                                    {t('chart.modal.cancel')}
+                                </button>
+                                <button
+                                    className="modal-btn confirm"
+                                    onClick={() => {
+                                        const { date, price } = confirmModal;
+                                        setInvestmentDate(date);
+                                        setInvestmentPrice(price);
+                                        const today = new Date().toISOString().split('T')[0];
+                                        setCustomStartDate(date);
+                                        setCustomEndDate(today);
+                                        setPeriod('custom');
+                                        setIsIndexed(true);
+                                        setConfirmModal({ ...confirmModal, isOpen: false });
+                                    }}
+                                >
+                                    {t('chart.modal.confirm')}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 };
