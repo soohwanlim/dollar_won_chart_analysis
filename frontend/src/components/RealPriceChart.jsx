@@ -658,7 +658,6 @@ const RealPriceChart = ({ ticker }) => {
                                     stroke="#ffc658"
                                     strokeWidth={2}
                                     dot={false}
-                                    strokeDasharray="5 5"
                                     activeDot={{
                                         r: 8, onClick: (e, payload) => {
                                             if (payload && payload.payload) {
