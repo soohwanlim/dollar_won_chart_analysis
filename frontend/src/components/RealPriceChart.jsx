@@ -653,6 +653,34 @@ const RealPriceChart = ({ ticker }) => {
                                 <Line
                                     yAxisId={isIndexed ? "left" : "right"}
                                     type="monotone"
+                                    dataKey="real_price_cpi"
+                                    name={t('chart.legendReal')}
+                                    stroke="#ffc658"
+                                    strokeWidth={2}
+                                    dot={false}
+                                    strokeDasharray="5 5"
+                                    activeDot={{
+                                        r: 8, onClick: (e, payload) => {
+                                            if (payload && payload.payload) {
+                                                const { date } = payload.payload;
+                                                const rawPoint = data.find(d => d.date === date);
+                                                if (rawPoint) {
+                                                    setConfirmModal({
+                                                        isOpen: true,
+                                                        date: date,
+                                                        price: rawPoint.close
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }}
+                                    animationDuration={1000}
+                                />
+                            )}
+                            {!isGoldMode && (
+                                <Line
+                                    yAxisId={isIndexed ? "left" : "right"}
+                                    type="monotone"
                                     dataKey="real_price_usd"
                                     name={t('chart.legendDollar')}
                                     stroke="#05f2db"
