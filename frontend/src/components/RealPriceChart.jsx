@@ -146,7 +146,7 @@ const RealPriceChart = ({ ticker }) => {
                         url += `&end_date=${customEndDate}`;
                     }
                 }
-                const response = await axios.get(url, { timeout: 10000 });
+                const response = await axios.get(url, { timeout: 15000 });
                 setData(response.data.data);
                 if (response.data.company_name) {
                     setCompanyName(response.data.company_name);

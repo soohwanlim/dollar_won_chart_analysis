@@ -73,7 +73,8 @@ async def get_chart_data(
         # Helper to run optional task with timeout
         async def run_optional(task, fallback_val, name):
             try:
-                return await asyncio.wait_for(task, timeout=3.0)
+                # Increased timeout to 7.0s to accommodate slower FRED/KOSIS responses
+                return await asyncio.wait_for(task, timeout=7.0)
             except Exception as e:
                 print(f"Warning: Optional task '{name}' failed or timed out: {e}")
                 return fallback_val
